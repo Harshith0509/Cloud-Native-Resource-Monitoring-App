@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>System Monitoring Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        background-color: #f3f4f6;
+      }
+      .gauge-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1.5rem;
+      }
+      .plotly-graph-div {
+        width: 100%;
+        max-width: 300px;
+        background-color: rgba(255, 255, 255, 0.9);
+        padding: 1rem;
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .alert {
+        transition: all 0.3s ease-in-out;
+      }
+      .metric-card {
+        transition: transform 0.2s;
+      }
+      .metric-card:hover {
+        transform: translateY(-2px);
+      }
+    </style>
+  </head>
+  <body class="font-sans antialiased">
+    <div class="container mx-auto px-4 py-8">
+      <h1 class="text-3xl font-bold text-gray-800 text-center mb-6">
+        System Monitoring Dashboard
+      </h1>
+      <p class="text-center text-gray-600 mb-4">
+        Last updated: <span id="timestamp">{{ timestamp }}</span>
+      </p>
+
+      <!-- Alerts -->
+      {% if alerts %}
+      <div
+        class="alert bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 mx-auto max-w-2xl rounded-lg"
+      >
+        <p class="font-semibold">System Alerts:</p>
+        <ul class="list-disc pl-5">
+          {% for alert in alerts %}
+          <li>{{ alert }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <!-- Gauge Charts -->
+      <div class="gauge-container">
+        <div id="cpu-gauge"></div>
+        <div id="mem-gauge"></div>
+        <div id="disk-gauge"></div>
+      </div>
+
+      <!-- Metrics Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+        <div class="metric-card bg-white p-5 rounded-lg shadow-md">
+          <h3 class="text-lg font-semibold text-gray-700">CPU Details</h3>
+          <p class="text-gray-600">Cores: {{ cpu_count }}</p>
+          <p class="text-gray-600">Frequency: {{ cpu_freq }} MHz</p>
+        </div>
+        <div class="metric-card bg-white p-5 rounded-lg shadow-md">
+          <h3 class="text-lg font-semibold text-gray-700">Memory Details</h3>
+          <p class="text-gray-600">Used: {{ mem_used }} GB</p>
+          <p class="text-gray-600">Total: {{ mem_total }} GB</p>
+        </div>
+        <div class="metric-card bg-white p-5 rounded-lg shadow-md">
+          <h3 class="text-lg font-semibold text-gray-700">Disk Details</h3>
+          <p class="text-gray-600">
+            Used: {{ disk_used }} GB ({{ disk_percent }}%)
+          </p>
+          <p class="text-gray-600">Total: {{ disk_total }} GB</p>
+        </div>
+        <div class="metric-card bg-white p-5 rounded-lg shadow-md">
+          <h3 class="text-lg font-semibold text-gray-700">Network Usage</h3>
+          <p class="text-gray-600">Sent: {{ bytes_sent }} MB</p>
+          <p class="text-gray-600">Received: {{ bytes_recv }} MB</p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // CPU Gauge
+      var cpuGauge = {
+          type: "indicator",
+          mode: "gauge+number",
+          value: {{ cpu_percent }},
+          gauge: {
+              axis: { range: [0, 100], tickcolor: "#666" },
+              bar: { color: "#3b82f6" },
+              bgcolor: "white",
+              borderwidth: 2,
+              bordercolor: "#e5e7eb",
+              steps: [
+                  { range: [0, 50], color: "#86efac" },
+                  { range: [50, 80], color: "#fef08a" },
+                  { range: [80, 100], color: "#f87171" }
+              ],
+              threshold: {
+                  line: { color: "#dc2626", width: 4 },
+                  thickness: 0.75,
+                  value: {{ cpu_percent }}
+              }
+          }
+      };
+
+      // Memory Gauge
+      var memGauge = {
+          type: "indicator",
+          mode: "gauge+number",
+          value: {{ mem_percent }},
+          gauge: {
+              axis: { range: [0, 100], tickcolor: "#666" },
+              bar: { color: "#3b82f6" },
+              bgcolor: "white",
+              borderwidth: 2,
+              bordercolor: "#e5e7eb",
+              steps: [
+                  { range: [0, 50], color: "#86efac" },
+                  { range: [50, 80], color: "#fef08a" },
+                  { range: [80, 100], color: "#f87171" }
+              ],
+              threshold: {
+                  line: { color: "#dc2626", width: 4 },
+                  thickness: 0.75,
+                  value: {{ mem_percent }}
+              }
+          }
+      };
+
+      // Disk Gauge
+      var diskGauge = {
+          type: "indicator",
+          mode: "gauge+number",
+          value: {{ disk_percent }},
+          gauge: {
+              axis: { range: [0, 100], tickcolor: "#666" },
+              bar: { color: "#3b82f6" },
+              bgcolor: "white",
+              borderwidth: 2,
+              bordercolor: "#e5e7eb",
+              steps: [
+                  { range: [0, 50], color: "#86efac" },
+                  { range: [50, 80], color: "#fef08a" },
+                  { range: [80, 100], color: "#f87171" }
+              ],
+              threshold: {
+                  line: { color: "#dc2626", width: 4 },
+                  thickness: 0.75,
+                  value: {{ disk_percent }}
+              }
+          }
+      };
+
+      var cpuGaugeLayout = { title: { text: "CPU Utilization (%)", font: { size: 16 } }, margin: { t: 50, b: 20 } };
+      var memGaugeLayout = { title: { text: "Memory Utilization (%)", font: { size: 16 } }, margin: { t: 50, b: 20 } };
+      var diskGaugeLayout = { title: { text: "Disk Utilization (%)", font: { size: 16 } }, margin: { t: 50, b: 20 } };
+
+      Plotly.newPlot('cpu-gauge', [cpuGauge], cpuGaugeLayout);
+      Plotly.newPlot('mem-gauge', [memGauge], memGaugeLayout);
+      Plotly.newPlot('disk-gauge', [diskGauge], diskGaugeLayout);
+    </script>
+  </body>
+</html>
